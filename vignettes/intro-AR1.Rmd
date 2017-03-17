@@ -1,22 +1,20 @@
 ---
 title: "Introduction to the AR(1) process"
 author: "Timothée Flutre (INRA)"
-date: "`r format(Sys.time(), '%d/%m/%Y %H:%M:%S')`"
+date: '`r Sys.Date()`'
 output:
-  rmarkdown::html_vignette:
-    toc: true
   html_document:
-    toc: true
-    toc_float: true
-    number_sections: TRUE
+    number_sections: yes
+    toc: yes
+    toc_float: yes
   pdf_document:
-    toc: true
+    number_sections: yes
+    toc: yes
     toc_depth: 3
-    number_sections: TRUE
-vignette: >
-  %\VignetteIndexEntry{Intro AR1}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
+  rmarkdown::html_vignette:
+    toc: yes
+vignette: |
+  %\VignetteIndexEntry{Intro AR1} %\VignetteEngine{knitr::rmarkdown} %\VignetteEncoding{UTF-8}
 ---
 
 <!--
