@@ -1,22 +1,20 @@
 ---
 title: "Introduction to heteroscedasticity in regression"
 author: "Timothée Flutre (INRA)"
-date: "`r format(Sys.time(), '%d/%m/%Y %H:%M:%S')`"
+date: '`r Sys.Date()`'
 output:
-  rmarkdown::html_vignette:
-    toc: true
   html_document:
-    toc: true
-    toc_float: true
-    number_sections: TRUE
+    number_sections: yes
+    toc: yes
+    toc_float: yes
   pdf_document:
-    toc: true
+    number_sections: yes
+    toc: yes
     toc_depth: 3
-    number_sections: TRUE
-vignette: >
-  %\VignetteIndexEntry{Intro heteroscedasticity}
-  %\VignetteEngine{knitr::rmarkdown}
-  %\VignetteEncoding{UTF-8}
+  rmarkdown::html_vignette:
+    toc: yes
+vignette: |
+  %\VignetteIndexEntry{Intro heteroscedasticity} %\VignetteEngine{knitr::rmarkdown} %\VignetteEncoding{UTF-8}
 ---
 
 <!--
@@ -60,6 +58,9 @@ library(nlme)
 library(lme4)
 library(rstan)
 library(loo)
+library(INLA)
+library(dplyr)
+library(ggplot2)
 ```
 
 This R chunk is used to assess how much time it takes to execute the R code in this document until the end:
@@ -108,23 +109,37 @@ G <- 2.5*10^2
 head(geno.ids <- sprintf(fmt=paste0("g%0", floor(log10(G)) + 1, "i"), 1:G))
 dat <- data.frame(block=rep(LETTERS[1:B], each=G),
                   geno=rep(geno.ids, B))
+str(dat)
+head(dat)
 X <- model.matrix(~ 1 + block, data=dat)
+str(X)
+head(X)
 mu <- 50
 (beta <- c(mu, rnorm(n=B-1, mean=0, sd=3)))
+str(beta)
 Z <- model.matrix(~ -1 + geno, data=dat)
 sigma.u <- 4
 u <- setNames(rnorm(n=G, mean=0, sd=sigma.u), geno.ids)
+u
+str(as.data.frame(u))
 (sigma.b <- setNames(sample(1:8, size=B, replace=ifelse(8 < B, TRUE, FALSE)),
                      levels(dat$block)))
+str(sigma.b)
 nu <- + Inf
-epsilon <- do.call(c, lapply(sigma.b, function(sd.b){
+
+gauss_or_student <- function(sd.b){
   if(is.infinite(nu)){
     rnorm(n=G, mean=0, sd=sd.b)
   } else
     rt(n=G, df=nu, ncp=sd.b)
-}))
-dat$y <- X %*% beta + Z %*% u + epsilon
-str(dat)
+}
+
+epsilon <- do.call(c, lapply(sigma.b, gauss_or_student))
+t(epsilon)
+dat$y <-  X %*% beta + Z %*% u + epsilon
+
+str(dat$y)
+dat
 ```
 
 Don't hesitate to play by changing some values, e.g. increasing or decreasing $B$ and/or $G$, setting $\sigma_u$ at 0 or not, setting $\nu$ at $+\infty$ or not, etc.
@@ -137,6 +152,13 @@ Descriptive stats:
 (tmp <- do.call(rbind, tapply(dat$y, dat$block, function(y.b){
   c(mean=mean(y.b), sd=sd(y.b))
 })))
+str(tmp)
+#with dplyr
+tmp2 <- dat %>% 
+  group_by(block) %>% 
+  summarise(mean=mean(c(y)), sd=sd(c(y))) 
+tmp2
+str(tmp2)
 ```
 
 Visualization:
@@ -146,6 +168,16 @@ boxplot(y ~ block, data=dat, las=1, varwidth=TRUE,
         main=paste0("Simulated data (nu=", nu,
                     ", sigma_u=", format(sigma.u, digits=2), ")"))
 abline(h=mean(dat$y), lty=2)
+
+
+#with ggplot
+dat %>% 
+  ggplot(aes(x=block, y=y)) + 
+  geom_boxplot() + 
+  labs(x="blocks", y="phenotypes", 
+       title=paste0("Simulated data (nu=", nu, ", sigma_u=", format(sigma.u, digits=2), ")")) +
+  geom_hline(yintercept = mean(dat$y), linetype = 2)
+
 ```
 
 
